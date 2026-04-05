@@ -69,7 +69,21 @@ class DatabaseWriter {
     if (scope.drift3) {
       firstLeaf.writeln('super.implementation);');
     } else {
-      firstLeaf.writeln('${firstLeaf.drift('QueryExecutor e')}): super(e);');
+      firstLeaf.writeln('super.executor) : _delegate = null;');
+      firstLeaf
+        ..write('$className.delegate(')
+        ..writeDriftRef('GeneratedDatabase')
+        ..write(' database) : _delegate = database, super(')
+        ..writeDriftRef('DelegatedDatabaseConnection')
+        ..writeln('());');
+      firstLeaf
+        ..write('@override\n')
+        ..writeDriftRef('GeneratedDatabase')
+        ..writeln(' get delegate => _delegate ?? this;');
+      firstLeaf
+        ..write('final ')
+        ..writeDriftRef('GeneratedDatabase')
+        ..writeln('? _delegate;');
     }
 
     if (!scope.drift3 && dbScope.options.generateConnectConstructor) {
@@ -104,7 +118,7 @@ class DatabaseWriter {
           buffer: dbScope.leaf().buffer,
           getterName: entity.dbGetterName,
           returnType: tableClassName,
-          code: scope.drift3 ? '$tableClassName()' : '$tableClassName(this)',
+          code: scope.drift3 ? '$tableClassName()' : '$tableClassName(delegate)',
         );
       } else if (entity is DriftTrigger) {
         writeMemoizedGetter(

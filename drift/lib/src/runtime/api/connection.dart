@@ -132,3 +132,51 @@ class DatabaseConnection implements QueryExecutor {
   Future<int> runUpdate(String statement, List<Object?> args) =>
       executor.runUpdate(statement, args);
 }
+
+/// A database connection for delegated connection
+class DelegatedDatabaseConnection implements QueryExecutor {
+  @override
+  QueryExecutor beginExclusive() =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  TransactionExecutor beginTransaction() =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  Future<void> close() =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  SqlDialect get dialect =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  Future<bool> ensureOpen(QueryExecutorUser user) =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  Future<void> runBatched(BatchedStatements statements) =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  Future<void> runCustom(String statement, [List<Object?>? args]) =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  Future<int> runDelete(String statement, List<Object?> args) =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  Future<int> runInsert(String statement, List<Object?> args) =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+          String statement, List<Object?> args) =>
+      throw UnsupportedError('Unsupported for delegated connection');
+
+  @override
+  Future<int> runUpdate(String statement, List<Object?> args) =>
+      throw UnsupportedError('Unsupported for delegated connection');
+}

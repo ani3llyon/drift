@@ -13,6 +13,9 @@ Map<Type, int> _openedDbCount = {};
 abstract class GeneratedDatabase extends DatabaseConnectionUser
     implements QueryExecutorUser {
   @override
+  GeneratedDatabase get delegate => this;
+
+  @override
   GeneratedDatabase get attachedDatabase => this;
 
   @override
@@ -70,6 +73,7 @@ abstract class GeneratedDatabase extends DatabaseConnectionUser
   }
 
   void _whenConstructed() {
+    if (this != delegate) return;
     assert(_handleInstantiated());
     devtools.handleCreated(this);
   }
@@ -111,12 +115,12 @@ abstract class GeneratedDatabase extends DatabaseConnectionUser
   /// [migration] should suffice.
   @protected
   @visibleForTesting
-  Migrator createMigrator() => Migrator(this);
+  Migrator createMigrator() => Migrator(delegate);
 
   @override
   @nonVirtual
   Future<void> beforeOpen(QueryExecutor executor, OpeningDetails details) {
-    return _runConnectionZoned(BeforeOpenRunner(this, executor), () async {
+    return _runConnectionZoned(BeforeOpenRunner(delegate, executor), () async {
       if (schemaVersion <= 0) {
         throw StateError(
           'The schemaVersion of your database must be positive. \n'
@@ -142,6 +146,7 @@ abstract class GeneratedDatabase extends DatabaseConnectionUser
   @override
   Future<void> close() async {
     await super.close();
+    if (this != delegate) return;
     devtools.handleClosed(this);
 
     assert(() {
@@ -210,5 +215,5 @@ abstract class GeneratedDatabase extends DatabaseConnectionUser
     required DB Function(DatabaseConnection) connect,
   }) =>
       computeWithDatabaseImplementation(
-          computation: computation, connect: connect, database: this as DB);
+          computation: computation, connect: connect, database: delegate as DB);
 }

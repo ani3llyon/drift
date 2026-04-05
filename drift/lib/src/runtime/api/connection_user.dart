@@ -11,6 +11,12 @@ abstract class DatabaseConnectionUser {
   @protected
   final DatabaseConnection connection;
 
+  /// The [DatabaseConnectionUser] responsible for executing queries.
+  ///
+  /// By default, this returns the instance itself, but subclasses
+  /// can override this to delegate operations to another instance.
+  DatabaseConnectionUser get delegate => this;
+
   /// Whether [doWhenOpened] has been called and completed at least once.
   ///
   /// This can serve as an optimization setups requiring direct access to the
@@ -64,7 +70,7 @@ abstract class DatabaseConnectionUser {
   /// Creates and auto-updating stream from the given select statement. This
   /// method should not be used directly.
   Stream<T> createStream<T extends Object>(QueryStreamFetcher<T> stmt) =>
-      resolvedEngine.streamQueries.registerStream(stmt, this);
+      resolvedEngine.streamQueries.registerStream(stmt, delegate);
 
   /// Creates a copy of the table with an alias so that it can be used in the
   /// same query more than once.
@@ -98,7 +104,7 @@ abstract class DatabaseConnectionUser {
     if (fromZone != null && fromZone.attachedDatabase == attachedDatabase) {
       return fromZone;
     } else {
-      return this;
+      return delegate;
     }
   }
 
@@ -175,7 +181,7 @@ abstract class DatabaseConnectionUser {
   /// Starts an [InsertStatement] for a given table. You can use that statement
   /// to write data into the [table] by using [InsertStatement.insert].
   InsertStatement<T, D> into<T extends Table, D>(TableInfo<T, D> table) {
-    return InsertStatement<T, D>(this, table);
+    return InsertStatement<T, D>(delegate, table);
   }
 
   /// Starts an [UpdateStatement] for the given table. You can use that
@@ -183,7 +189,7 @@ abstract class DatabaseConnectionUser {
   /// clause on that table and then use [UpdateStatement.write].
   UpdateStatement<Tbl, R> update<Tbl extends Table, R>(
           TableInfo<Tbl, R> table) =>
-      UpdateStatement(this, table);
+      UpdateStatement(delegate, table);
 
   /// Starts a query on the given table.
   ///
@@ -212,7 +218,7 @@ abstract class DatabaseConnectionUser {
   SimpleSelectStatement<T, R> select<T extends HasResultSet, R>(
       ResultSetImplementation<T, R> table,
       {bool distinct = false}) {
-    return SimpleSelectStatement<T, R>(this, table, distinct: distinct);
+    return SimpleSelectStatement<T, R>(delegate, table, distinct: distinct);
   }
 
   /// Starts a complex statement on [table] that doesn't necessarily use all of
@@ -248,7 +254,7 @@ abstract class DatabaseConnectionUser {
   JoinedSelectStatement<T, R> selectOnly<T extends HasResultSet, R>(
       ResultSetImplementation<T, R> table,
       {bool distinct = false}) {
-    return JoinedSelectStatement<T, R>(this, table, [], distinct, false, false);
+    return JoinedSelectStatement<T, R>(delegate, table, [], distinct, false, false);
   }
 
   /// Creates a select statement without a `FROM` clause selecting [columns].
@@ -270,7 +276,7 @@ abstract class DatabaseConnectionUser {
   /// ```
   BaseSelectStatement<TypedResult> selectExpressions(
       Iterable<Expression> columns) {
-    return SelectWithoutTables(this, columns);
+    return SelectWithoutTables(delegate, columns);
   }
 
   /// Starts a [DeleteStatement] that can be used to delete rows from a table.
@@ -278,7 +284,7 @@ abstract class DatabaseConnectionUser {
   /// See the [documentation](https://drift.simonbinder.eu/docs/dart-api/writes/#updates-and-deletes)
   /// for more details and example on how delete statements work.
   DeleteStatement<T, D> delete<T extends Table, D>(TableInfo<T, D> table) {
-    return DeleteStatement<T, D>(this, table);
+    return DeleteStatement<T, D>(delegate, table);
   }
 
   /// Executes a custom delete or update statement and returns the amount of
@@ -391,7 +397,7 @@ abstract class DatabaseConnectionUser {
   Selectable<QueryRow> customSelect(String query,
       {List<Variable> variables = const [],
       Set<ResultSetImplementation> readsFrom = const {}}) {
-    return CustomSelectStatement(query, variables, readsFrom, this);
+    return CustomSelectStatement(query, variables, readsFrom, delegate);
   }
 
   /// Creates a custom select statement from the given sql [query]. To run the
@@ -495,7 +501,7 @@ abstract class DatabaseConnectionUser {
 
     return await resolved.doWhenOpened((executor) {
       final transactionExecutor = executor.beginTransaction();
-      final transaction = Transaction(this, transactionExecutor);
+      final transaction = Transaction(delegate, transactionExecutor);
 
       return _runConnectionZoned(transaction, () async {
         var success = false;
@@ -566,7 +572,7 @@ abstract class DatabaseConnectionUser {
       final exclusive = executor.beginExclusive();
 
       return _runConnectionZoned(
-        _ExclusiveExecutor(this, executor: exclusive),
+        _ExclusiveExecutor(delegate, executor: exclusive),
         () async {
           await exclusive.ensureOpen(attachedDatabase);
 
@@ -625,7 +631,7 @@ abstract class DatabaseConnectionUser {
   Future<T> runWithInterceptor<T>(Future<T> Function() action,
       {required QueryInterceptor interceptor}) async {
     return await resolvedEngine.doWhenOpened((executor) {
-      final inner = _ExclusiveExecutor(this,
+      final inner = _ExclusiveExecutor(delegate,
           executor: executor.interceptWith(interceptor));
       return _runConnectionZoned(inner, action);
     });
@@ -644,7 +650,7 @@ abstract class DatabaseConnectionUser {
   @protected
   GenerationContext $write(Component component,
       {bool? hasMultipleTables, int? startIndex}) {
-    final context = GenerationContext.fromDb(this)
+    final context = GenerationContext.fromDb(delegate)
       ..explicitVariableIndex = startIndex
       ..hasMultipleTables = hasMultipleTables ?? false;
     component.writeInto(context);
@@ -658,11 +664,11 @@ abstract class DatabaseConnectionUser {
   @protected
   GenerationContext $writeInsertable(TableInfo table, Insertable insertable,
       {int? startIndex}) {
-    final context = GenerationContext.fromDb(this)
+    final context = GenerationContext.fromDb(delegate)
       ..explicitVariableIndex = startIndex;
 
     table.validateIntegrity(insertable, isInserting: true);
-    InsertStatement(this, table)
+    InsertStatement(delegate, table)
         .writeInsertable(context, insertable.toColumns(true));
 
     return context;
