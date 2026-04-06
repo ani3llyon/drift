@@ -12,6 +12,12 @@ Map<Type, int> _openedDbCount = {};
 /// A base class for all generated databases.
 abstract class GeneratedDatabase extends DatabaseConnectionUser
     implements QueryExecutorUser {
+  /// Indicates whether the database is currently running in debug mode.
+  ///
+  /// **Important:** This flag is managed and set automatically by
+  /// `GobyDatabaseManager`. Do not set or modify this value manually.
+  bool isDebugMode = false;
+
   @override
   GeneratedDatabase get delegate => this;
 
