@@ -55,6 +55,68 @@ class DatabaseWriter {
 
     final className = dbClassName;
     final firstLeaf = dbScope.leaf();
+
+    for (final entity in elements.whereType<DriftTable>()) {
+      final String? nameOfDaoClass = entity.nameOfDaoClass;
+      final String? nameOfDaoGetter = entity.nameOfDaoGetter;
+      final String? nameOfServiceClass = entity.nameOfServiceClass;
+      final String? nameOfServiceGetter = entity.nameOfServiceGetter;
+      final String dbGetterName = entity.dbGetterName;
+      final String baseDartName = entity.baseDartName;
+      final String nameOfRowClass = entity.nameOfRowClass;
+      final String entityInfoName = entity.entityInfoName;
+
+      if (nameOfDaoClass == null || nameOfDaoGetter == null) continue;
+      firstLeaf
+        ..write('abstract interface class $nameOfDaoClass')
+        ..write(' implements GobyDao')
+        ..write(' <$baseDartName, $nameOfRowClass, $entityInfoName>')
+        ..writeln(' {}');
+      firstLeaf
+        ..write('class ${nameOfDaoClass}Impl')
+        ..write(' extends GobyDaoImpl')
+        ..write(' <')
+        ..write(' $className,')
+        ..write(' $baseDartName, ')
+        ..write(' $nameOfRowClass,')
+        ..write(' $entityInfoName')
+        ..write(' >')
+        ..write(' implements $nameOfDaoClass {')
+        ..write(' ${nameOfDaoClass}Impl(super.database);')
+        ..write(' @override')
+        ..write(' late final $entityInfoName')
+        ..write(' table = $dbGetterName;')
+        ..write(' late final $entityInfoName')
+        ..write(' $dbGetterName = database.$dbGetterName;')
+        ..writeln(' }');
+
+      if (nameOfServiceClass == null || nameOfServiceGetter == null) continue;
+      final daoCustomClass = entity.daoCustomClass;
+      final daoClass = daoCustomClass != null
+          ? firstLeaf.dartCode(daoCustomClass)
+          : nameOfDaoClass;
+      firstLeaf
+        ..write('abstract interface class $nameOfServiceClass')
+        ..write(' implements GobyService<$nameOfRowClass>')
+        ..writeln(' {}');
+      firstLeaf
+        ..write('class ${nameOfServiceClass}Impl')
+        ..write(' extends GobyServiceImpl')
+        ..write(' <')
+        ..write(' $className,')
+        ..write(' $nameOfRowClass,')
+        ..write(' $daoClass')
+        ..write(' >')
+        ..write(' implements $nameOfServiceClass {')
+        ..write(' ${nameOfServiceClass}Impl(super.database);')
+        ..write(' @override')
+        ..write(' late final $daoClass')
+        ..write(' dao = $nameOfDaoGetter;')
+        ..write(' late final $daoClass')
+        ..write(' $nameOfDaoGetter = database.$nameOfDaoGetter;')
+        ..writeln(' }');
+    }
+
     final isAbstract = !scope.generationOptions.isGeneratingForSchema;
     if (isAbstract) {
       firstLeaf.write('abstract ');
@@ -120,6 +182,38 @@ class DatabaseWriter {
           returnType: tableClassName,
           code: scope.drift3 ? '$tableClassName()' : '$tableClassName(delegate)',
         );
+
+        final nameOfDaoClass = entity.nameOfDaoClass;
+        final nameOfDaoGetter = entity.nameOfDaoGetter;
+        if (nameOfDaoClass != null && nameOfDaoGetter != null) {
+          final daoCustomClass = entity.daoCustomClass;
+          final daoClass = daoCustomClass != null
+              ? firstLeaf.dartCode(daoCustomClass)
+              : nameOfDaoClass;
+
+          writeMemoizedGetter(
+            buffer: dbScope.leaf().buffer,
+            getterName: nameOfDaoGetter,
+            returnType: daoClass,
+            code: '${daoClass}Impl(this)',
+          );
+        }
+
+        final nameOfServiceClass = entity.nameOfServiceClass;
+        final nameOfServiceGetter = entity.nameOfServiceGetter;
+        if (nameOfServiceClass != null && nameOfServiceGetter != null) {
+          final serviceCustomClass = entity.serviceCustomClass;
+          final serviceClass = serviceCustomClass != null
+              ? firstLeaf.dartCode(serviceCustomClass)
+              : nameOfServiceClass;
+
+          writeMemoizedGetter(
+            buffer: dbScope.leaf().buffer,
+            getterName: nameOfServiceGetter,
+            returnType: serviceClass,
+            code: '${serviceClass}Impl(this)',
+          );
+        }
       } else if (entity is DriftTrigger) {
         writeMemoizedGetter(
           buffer: dbScope.leaf().buffer,

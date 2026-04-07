@@ -62,6 +62,12 @@ class ElementSerializer {
         'base_dart_name': element.baseDartName,
         'row_class_name': element.nameOfRowClass,
         'companion_class_name': element.nameOfCompanionClass,
+        'dao_class_name': element.nameOfDaoClass,
+        'dao_getter_name': element.nameOfDaoGetter,
+        'service_class_name': element.nameOfServiceClass,
+        'service_getter_name': element.nameOfServiceGetter,
+        'dao_custom_class': element.daoCustomClass?.toJson(),
+        'service_custom_class': element.serviceCustomClass?.toJson(),
         'without_rowid': element.withoutRowId,
         'strict': element.strict,
         if (element.isVirtual)
@@ -562,6 +568,13 @@ class ElementDeserializer {
           baseDartName: json['base_dart_name'] as String,
           nameOfRowClass: json['row_class_name'] as String,
           nameOfCompanionClass: json['companion_class_name'] as String?,
+          nameOfDaoClass: json['dao_class_name'] as String?,
+          nameOfDaoGetter: json['dao_getter_name'] as String?,
+          nameOfServiceClass: json['service_class_name'] as String?,
+          nameOfServiceGetter: json['service_getter_name'] as String?,
+          daoCustomClass: _readCustomClass(json['dao_custom_class'] as Map?),
+          serviceCustomClass:
+              _readCustomClass(json['service_custom_class'] as Map?),
           withoutRowId: json['without_rowid'] as bool,
           strict: json['strict'] as bool,
           virtualTableData: virtualTableData,
@@ -871,6 +884,11 @@ class ElementDeserializer {
       parentClass: AnnotatedDartCode.fromJson(json['class'] as Map),
       isConst: json['const'] as bool,
     );
+  }
+
+  AnnotatedDartCode? _readCustomClass(Map? json) {
+    if (json == null) return null;
+    return AnnotatedDartCode.fromJson(json);
   }
 
   ReferenceAction? _readAction(String? value) {

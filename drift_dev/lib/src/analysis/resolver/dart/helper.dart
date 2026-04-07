@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/type_provider.dart';
 import 'package:analyzer/dart/element/type_system.dart';
 import 'package:collection/collection.dart';
+import 'package:recase/recase.dart';
 import 'package:source_gen/source_gen.dart';
 
 import '../../backend.dart';
@@ -270,6 +271,13 @@ extension TypeUtils on DartType {
 class DataClassInformation {
   final String? enforcedName;
   final String? companionName;
+  final String? entityName;
+  final String? daoClassName;
+  final String? daoGetterName;
+  final String? serviceClassName;
+  final String? serviceGetterName;
+  final AnnotatedDartCode? daoCustomClass;
+  final AnnotatedDartCode? serviceCustomClass;
   final CustomParentClass? extending;
   final ExistingRowClass? existingClass;
   final List<AnnotatedDartCode> interfaces;
@@ -277,6 +285,13 @@ class DataClassInformation {
   DataClassInformation(
     this.enforcedName,
     this.companionName,
+    this.entityName,
+    this.daoClassName,
+    this.daoGetterName,
+    this.serviceClassName,
+    this.serviceGetterName,
+    this.daoCustomClass,
+    this.serviceCustomClass,
     this.extending,
     this.existingClass,
     this.interfaces,
@@ -308,13 +323,53 @@ class DataClassInformation {
       ));
     }
 
-    var name = dataClassName?.getField('name')!.toStringValue();
-    final companionName = dataClassName?.getField('companion')?.toStringValue();
+    var name = dataClassName?.getField('name')?.toStringValue();
+    var companionName = dataClassName?.getField('companion')?.toStringValue();
+    final forGoby = dataClassName?.getField('forGoby')?.toBoolValue() ?? false;
+    final basename = dataClassName?.getField('basename')?.toStringValue();
+    final generateServiceClass =
+        dataClassName?.getField('generateServiceClass')?.toBoolValue() ?? false;
+    String? entityName;
+    String? daoClassName;
+    String? daoGetterName;
+    String? serviceClassName;
+    String? serviceGetterName;
+    AnnotatedDartCode? daoCustomClass;
+    AnnotatedDartCode? serviceCustomClass;
     CustomParentClass? customParentClass;
     ExistingRowClass? existingClass;
     List<AnnotatedDartCode> implementedInterfaces = const [];
 
     if (dataClassName != null) {
+      bool hasBaseName = basename?.isNotEmpty ?? false;
+      if (forGoby && hasBaseName) {
+        name = name ?? '${basename}Data';
+        companionName = companionName ?? '${basename}Companion';
+        entityName = '\$${basename}Table';
+
+        final daoName = '${basename}Dao';
+        daoClassName = '\$$daoName';
+        daoGetterName = daoName.camelCase;
+
+        final daoCustom = dataClassName.getField('daoCustomClass');
+        if (daoCustom != null && !daoCustom.isNull) {
+          final type = daoCustom.toTypeValue();
+          if (type != null) daoCustomClass = AnnotatedDartCode.type(type);
+        }
+
+        if (generateServiceClass) {
+          final serviceName = '${basename}Service';
+          serviceClassName = '\$$serviceName';
+          serviceGetterName = serviceName.camelCase;
+
+          final serviceCustom = dataClassName.getField('serviceCustomClass');
+          if (serviceCustom != null && !serviceCustom.isNull) {
+            final type = serviceCustom.toTypeValue();
+            if (type != null) serviceCustomClass = AnnotatedDartCode.type(type);
+          }
+        }
+      }
+
       customParentClass =
           parseCustomParentClass(name, dataClassName, element, resolver);
 
@@ -363,6 +418,13 @@ class DataClassInformation {
     return DataClassInformation(
       name,
       companionName,
+      entityName,
+      daoClassName,
+      daoGetterName,
+      serviceClassName,
+      serviceGetterName,
+      daoCustomClass,
+      serviceCustomClass,
       customParentClass,
       existingClass,
       implementedInterfaces,

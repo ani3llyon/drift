@@ -39,6 +39,24 @@ class DriftTable extends DriftElementWithResultSet {
   @override
   final String? nameOfCompanionClass;
 
+  /// The name for the DAO class associated with this table or view.
+  final String? nameOfDaoClass;
+
+  /// The name for the DAO getter associated with this table or view.
+  final String? nameOfDaoGetter;
+
+  /// The name for the Service class associated with this table or view.
+  final String? nameOfServiceClass;
+
+  /// The name for the Service getter associated with this table or view.
+  final String? nameOfServiceGetter;
+
+  /// Class that extend default DAO class generated.
+  final AnnotatedDartCode? daoCustomClass;
+
+  /// Class that extend default Service class generated.
+  final AnnotatedDartCode? serviceCustomClass;
+
   final bool withoutRowId;
 
   /// Information about the virtual table creating statement backing this table,
@@ -77,6 +95,12 @@ class DriftTable extends DriftElementWithResultSet {
     required this.baseDartName,
     required this.nameOfRowClass,
     this.nameOfCompanionClass,
+    this.nameOfDaoClass,
+    this.nameOfDaoGetter,
+    this.nameOfServiceClass,
+    this.nameOfServiceGetter,
+    this.daoCustomClass,
+    this.serviceCustomClass,
     this.references = const [],
     this.existingRowClass,
     this.customParentClass,
