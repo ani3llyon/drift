@@ -3,9 +3,6 @@ import 'dart:async';
 import 'package:drift3/drift.dart' hide ResultSet;
 import 'package:meta/meta.dart';
 import 'package:sqlite3_connection_pool/sqlite3_connection_pool.dart';
-// ignore: implementation_imports
-import 'package:sqlite3_connection_pool/src/connection.dart'
-    show PoolConnection;
 import 'package:sqlite3/sqlite3.dart';
 
 import 'shared.dart';
@@ -15,13 +12,14 @@ import 'shared.dart';
 final class SqlitePoolSession
     implements
         DriftSession,
-        PersistentSchemaVersion,
         DriftTransactionParent,
         DriftSessionWithInternalLocks {
   final SqliteConnectionPool pool;
   final Completer<void> _closed = Completer();
 
-  SqlitePoolSession(this.pool);
+  final bool includePersistentSchemaVersion;
+
+  SqlitePoolSession(this.pool, {this.includePersistentSchemaVersion = true});
 
   @override
   Future<void> close() async {
@@ -68,10 +66,14 @@ final class SqlitePoolSession
   DriftSessionWithInternalLocks? get locks => this;
 
   @override
-  PersistentSchemaVersion? get persistentSchemaVersion => this;
+  PersistentSchemaVersion? get persistentSchemaVersion {
+    return includePersistentSchemaVersion
+        ? PragmaPersistedSchemaVersion(this)
+        : null;
+  }
 
   @override
-  Object? get tag => null;
+  Object? get tag => this;
 
   @override
   // The root pool itself is never in a transaction, we'd hand out connection
@@ -97,27 +99,6 @@ final class SqlitePoolSession
         .exclusiveAccess(abortSignal: cancellationSignal)
         .poolAbortExceptionsToDrift();
     return _ExclusivePoolConnection(access);
-  }
-
-  @override
-  Future<int> get schemaVersion async {
-    final writer = await pool.writer();
-    try {
-      final (rs, _) = await writer.select('PRAGMA user_version');
-      return rs.rows[0][0] as int;
-    } finally {
-      writer.returnLease();
-    }
-  }
-
-  @override
-  Future<void> writeSchemaVersion(int version) async {
-    final writer = await pool.writer();
-    try {
-      await writer.execute('PRAGMA user_version = $version;');
-    } finally {
-      writer.returnLease();
-    }
   }
 }
 

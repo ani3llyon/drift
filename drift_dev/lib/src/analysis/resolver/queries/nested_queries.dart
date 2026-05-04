@@ -67,11 +67,13 @@ class NestedQueryAnalyzer extends RecursiveVisitor<_AnalyzerState, void> {
       if (e.parent != expectedParent || !expectedParent.columns.contains(e)) {
         // Not in a valid container or placed in an illegal position - report
         // error!
-        errors.add(AnalysisError(
-          relevantNode: e,
-          message: 'A `LIST` result cannot be used here!',
-          type: AnalysisErrorType.other,
-        ));
+        errors.add(
+          AnalysisError(
+            relevantNode: e,
+            message: 'A `LIST` result cannot be used here!',
+            type: AnalysisErrorType.other,
+          ),
+        );
       }
 
       final nested = NestedQuery(arg.container, e);
@@ -101,8 +103,10 @@ class NestedQueryAnalyzer extends RecursiveVisitor<_AnalyzerState, void> {
     if (resultEntity != null && container is NestedQuery) {
       if (!resultEntity.origin.isChildOf(arg.container.select)) {
         // Reference captures a variable outside of this query
-        final capture = container.capturedVariables[e] =
-            CapturedVariable(e, _capturingVariableCounter++);
+        final capture = container.capturedVariables[e] = CapturedVariable(
+          e,
+          _capturingVariableCounter++,
+        );
 
         // Keep track of the position of the variable so that we can later
         // assign it the right index.
@@ -126,15 +130,15 @@ class _AnalyzerState {
   void _process() {
     // Add necessary columns to select variables read by inner nested queries.
     for (final variable in container.variablesCapturedByChildren) {
-      container.addedColumns.add(
-        ExpressionResultColumn(
-          expression: Reference(
-            entityName: variable.reference.entityName,
-            columnName: variable.reference.columnName,
-          ),
-          as: AliasClause(variable.helperColumn),
+      final column = ExpressionResultColumn(
+        expression: Reference(
+          entityName: variable.reference.entityName,
+          columnName: variable.reference.columnName,
         ),
+        as: AliasClause(variable.helperColumn),
       );
+      container.addedColumns.add(column);
+      variable.columnIndex = container.nextColumnIndex++;
     }
 
     // Re-index variables. This is necessary for two reasons:
@@ -160,8 +164,11 @@ class _AnalyzerState {
 /// - add result columns for outgoing references in nested queries
 /// - replace outgoing references with variables
 SelectStatement addHelperNodes(NestedQueriesContainer rootContainer) {
-  return _NestedQueryTransformer()
-      .transform(rootContainer.select, rootContainer) as SelectStatement;
+  return _NestedQueryTransformer().transform(
+        rootContainer.select,
+        rootContainer,
+      )
+      as SelectStatement;
 }
 
 class _NestedQueryTransformer extends Transformer<NestedQueriesContainer> {
@@ -177,7 +184,9 @@ class _NestedQueryTransformer extends Transformer<NestedQueriesContainer> {
 
   @override
   AstNode? visitDriftSpecificNode(
-      DriftSpecificNode e, NestedQueriesContainer arg) {
+    DriftSpecificNode e,
+    NestedQueriesContainer arg,
+  ) {
     if (e is NestedQueryColumn) {
       final child = arg.nestedQueries[e];
       if (child != null) {

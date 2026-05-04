@@ -84,21 +84,16 @@ final class Variable<T extends Object> extends Expression<T> {
     var explicitStart = context.explicitVariableIndex;
 
     var mark = '?';
-    var suffix = '';
     if (context.dialect == SqlDialect.postgres) {
       explicitStart = 1;
       mark = r'$';
     }
 
-    if (explicitStart != null) {
+    if (explicitStart != null && context.dialect.supportsIndexedParameters) {
       context.buffer
         ..write(mark)
-        ..write(explicitStart + context.amountOfVariables)
-        ..write(suffix);
-      context.introduceVariable(
-        this,
-        mapToSimpleValue(context),
-      );
+        ..write(explicitStart + context.amountOfVariables);
+      context.introduceVariable(this, mapToSimpleValue(context));
     } else {
       context.buffer.write(mark);
       context.introduceVariable(this, mapToSimpleValue(context));
@@ -138,8 +133,9 @@ final class Constant<T extends Object> extends Expression<T> {
 
   @override
   void writeInto(GenerationContext context) {
-    return context.buffer
-        .write(BaseSqlType.mapToSqlLiteral(context, _customType, value));
+    return context.buffer.write(
+      BaseSqlType.mapToSqlLiteral(context, _customType, value),
+    );
   }
 
   @override

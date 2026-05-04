@@ -1,3 +1,8 @@
+## 2.33.0
+
+- Add `length` extension for blob expressions.
+- Add `SqlDialect.duckdb` for use with the `drift_duckdb` package.
+
 ## 2.32.1
 
 - DevTools extension: Make error messages selectable.

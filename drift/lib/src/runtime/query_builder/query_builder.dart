@@ -30,6 +30,7 @@ import 'expressions/internal.dart';
 import 'helpers.dart';
 
 export 'components/table_valued_function.dart';
+export 'expressions/binary.dart';
 export 'expressions/bitwise.dart';
 export 'expressions/case_when.dart';
 export 'on_table.dart';
@@ -82,7 +83,9 @@ abstract class Component {
 
 /// Writes all [components] into the [context], separated by commas.
 void _writeCommaSeparated(
-    GenerationContext context, Iterable<Component> components) {
+  GenerationContext context,
+  Iterable<Component> components,
+) {
   var first = true;
   for (final element in components) {
     if (!first) {
@@ -124,6 +127,16 @@ enum SqlDialect {
     integerType: 'bigint',
     blobType: 'bytea',
     realType: 'float8',
+  ),
+
+  /// DuckDB (currently supported in an experimental state)
+  duckdb(
+    booleanType: 'BOOLEAN',
+    textType: 'TEXT',
+    integerType: 'BIGINT',
+    blobType: 'BLOB',
+    realType: 'DOUBLE',
+    supportsIndexedParameters: false,
   ),
 
   /// MariaDB (currently supported in an experimental state)

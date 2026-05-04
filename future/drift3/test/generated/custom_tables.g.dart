@@ -1746,7 +1746,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
     List<String> var1, {
     ReadMultiple$clause? clause,
   }) {
-    var $arrayStartIndex = 1;
+    var $arrayStartIndex = 0;
     final expandedvar1 = $expandVar($arrayStartIndex, var1.length);
     $arrayStartIndex += var1.length;
     final generatedclause = $write(
@@ -1776,7 +1776,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
   }
 
   Selectable<Config> readDynamic({ReadDynamic$predicate? predicate}) {
-    var $arrayStartIndex = 1;
+    var $arrayStartIndex = 0;
     final generatedpredicate = $write(
       predicate?.call(this.config) ??
           const Expression.customComponent(
@@ -1808,7 +1808,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
     List<SyncType?> var2, {
     TypeConverterVar$pred? pred,
   }) {
-    var $arrayStartIndex = 2;
+    var $arrayStartIndex = 1;
     final generatedpred = $write(
       pred?.call(this.config) ??
           const Expression.customComponent(
@@ -1883,7 +1883,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
   }
 
   Selectable<MultipleResult> multiple({required Multiple$predicate predicate}) {
-    var $arrayStartIndex = 1;
+    var $arrayStartIndex = 0;
     final generatedpredicate = $write(
       predicate(
         alias(this.withDefaults, 'd'),
@@ -1944,7 +1944,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
   }
 
   Selectable<ReadRowIdResult> readRowId({required ReadRowId$expr expr}) {
-    var $arrayStartIndex = 1;
+    var $arrayStartIndex = 0;
     final generatedexpr = $write(
       expr(this.config),
       startIndex: $arrayStartIndex,
@@ -1979,7 +1979,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
   }
 
   Selectable<MyViewData> readView({ReadView$where? where}) {
-    var $arrayStartIndex = 1;
+    var $arrayStartIndex = 0;
     final generatedwhere = $write(
       where?.call(this.myView) ??
           const Expression.customComponent(
@@ -2034,7 +2034,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
   }
 
   Future<List<Config>> addConfig({required Insertable<Config> value}) {
-    var $arrayStartIndex = 1;
+    var $arrayStartIndex = 0;
     final generatedvalue = $writeInsertable(
       this.config,
       value,
@@ -2058,7 +2058,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
   }
 
   Selectable<NestedResult> nested(String? var1) {
-    return customSelectMapped<NestedResult>(
+    return customSelectMappedAsync<NestedResult>(
       query: switch (dialect.known) {
         KnownSqlDialect.sqlite =>
           'SELECT"defaults"."a", "defaults"."b", defaults.b AS "\$n_0" FROM with_defaults AS defaults WHERE a = ?1',
@@ -2072,18 +2072,36 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
           ColumnPosition(0),
           ColumnPosition(1),
         ]);
+        final type$0 = BuiltinDriftType.int.resolveIn(dialect);
 
-        return (RawRow row) => NestedResult(
+        return (RawRow row) async => NestedResult(
           row: row,
           defaults: map_0(row)!,
-          nestedQuery1: throw 'todo',
+          nestedQuery1: await customSelectMapped<WithConstraint>(
+            query: switch (dialect.known) {
+              KnownSqlDialect.sqlite =>
+                'SELECT * FROM with_constraints AS c WHERE c.b = ?1',
+              KnownSqlDialect.postgres ||
+              _ => 'SELECT * FROM with_constraints AS c WHERE c.b = \$1',
+            },
+            variables: [MappedValue.raw(type$0, row[2])],
+            readsFrom: {withConstraints, withDefaults},
+            createMapper: (RawResultSet _) {
+              final map_0 = withConstraints.createMapperFromPositions(
+                dialect,
+                const [ColumnPosition(0), ColumnPosition(1), ColumnPosition(2)],
+              );
+
+              return (RawRow row) => map_0(row)!;
+            },
+          ).get(),
         );
       },
     );
   }
 
   Selectable<MyCustomResultClass> customResult() {
-    return customSelectMapped<MyCustomResultClass>(
+    return customSelectMappedAsync<MyCustomResultClass>(
       query:
           'SELECT with_constraints.b, config.sync_state,"config"."config_key", "config"."config_value", "config"."sync_state", "config"."sync_state_implicit","no_ids"."payload" FROM with_constraints INNER JOIN config ON config_key = with_constraints.a CROSS JOIN no_ids',
       variables: [],
@@ -2100,7 +2118,7 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
           ColumnPosition(6),
         ]);
 
-        return (RawRow row) => MyCustomResultClass(
+        return (RawRow row) async => MyCustomResultClass(
           type$0.dartValue(row[0]!),
           syncState: NullAwareTypeConverter.wrapFromSql(
             ConfigTable.$convertersyncState,
@@ -2108,7 +2126,16 @@ abstract base class _$CustomTablesDb extends GeneratedDatabase {
           ),
           config: map_0(row)!,
           noIds: map_1(row)!,
-          nested: throw 'todo',
+          nested: await customSelectMapped<Buffer>(
+            query: 'SELECT * FROM no_ids',
+            variables: [],
+            readsFrom: {noIds},
+            createMapper: (RawResultSet _) {
+              final type$0 = BuiltinDriftType.byteArray.resolveIn(dialect);
+
+              return (RawRow row) => Buffer(type$0.dartValue(row[0]!));
+            },
+          ).get(),
         );
       },
     );

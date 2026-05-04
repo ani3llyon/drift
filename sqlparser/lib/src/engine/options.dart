@@ -51,16 +51,24 @@ class EngineOptions {
   }) : enabledExtensions = _allExtensions(enabledExtensions, version) {
     if (version < SqliteVersion.minimum) {
       throw ArgumentError.value(
-          version, 'version', 'Must at least be ${SqliteVersion.minimum}');
+        version,
+        'version',
+        'Must at least be ${SqliteVersion.minimum}',
+      );
     }
     if (version > SqliteVersion.current) {
       throw ArgumentError.value(
-          version, 'version', 'Must at most be ${SqliteVersion.current}');
+        version,
+        'version',
+        'Must at most be ${SqliteVersion.current}',
+      );
     }
   }
 
   static List<Extension> _allExtensions(
-      List<Extension> added, SqliteVersion version) {
+    List<Extension> added,
+    SqliteVersion version,
+  ) {
     return [
       // The json1 extension was enabled by default in sqlite3 version 3.38, so
       // add it if it's not already enabled.
@@ -88,9 +96,7 @@ class EngineOptions {
 class DriftSqlOptions {
   final bool storeDateTimesAsText;
 
-  const DriftSqlOptions({
-    this.storeDateTimesAsText = false,
-  });
+  const DriftSqlOptions({this.storeDateTimesAsText = false});
 }
 
 /// The assumed version of `sqlite3`.
@@ -109,15 +115,11 @@ class SqliteVersion implements Comparable<SqliteVersion> {
   /// The highest sqlite version supported by this `sqlparser` package.
   ///
   /// Newer features in `sqlite3` may not be recognized by this library.
-  static const SqliteVersion current = v3_52;
+  static const SqliteVersion current = v3_53;
 
   /// Version `3.52.0` added the `json_array_insert` and `jsonb_array_insert`
-  /// functions.
-  ///
-  /// Note that the `3.52.0` SQLite release has since been retracted, so using
-  /// this version is not recommended until a fixed version is released.
-  @experimental
-  static const SqliteVersion v3_52 = SqliteVersion.v3(52);
+  /// functions and enhanced `ALTER TABLE`.
+  static const SqliteVersion v3_53 = SqliteVersion.v3(53);
 
   /// Version `3.51.0` added the `jsonb_each` and `jsonb_tree` functions.
   static const SqliteVersion v3_51 = SqliteVersion.v3(51);

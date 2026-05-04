@@ -1,5 +1,8 @@
+import 'dart:async';
+
+import 'package:async/async.dart';
 import 'package:drift3/drift.dart';
-import 'package:drift3/src/utils/cancellation_zone.dart';
+import 'package:drift/src/drift3_preview/src/utils/cancellation_zone.dart';
 import 'package:drift_sqlite/drift_sqlite.dart';
 import 'package:test/test.dart';
 
@@ -185,6 +188,15 @@ void declareConnectionTests(Future<DriftSession> Function() openConnection) {
     final db = openDrift();
     addTearDown(db.close);
 
+    final hasTransaction = Completer<void>();
+    final finishTransaction = Completer<void>();
+
+    db.transaction(() async {
+      hasTransaction.complete();
+      await finishTransaction.future;
+    });
+    await hasTransaction.future;
+
     final token = CancellationToken<void>()..cancel();
 
     runCancellable(() async {
@@ -196,7 +208,60 @@ void declareConnectionTests(Future<DriftSession> Function() openConnection) {
       );
     }, token: token);
 
+    finishTransaction.complete();
     await db.customSelect('SELECT 1').get();
+  });
+
+  group('computeWithDatabase', () {
+    test('can run computation', () async {
+      final db = openDrift();
+      await db.customStatement(
+        'CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY)',
+      );
+      addTearDown(db.close);
+
+      final changes = StreamQueue(db.tableUpdates());
+
+      expect(await db.customSelect('SELECT * FROM users').get(), isEmpty);
+      await db.computeWithDatabase(
+        computation: (db) async {
+          await db.batch((b) {
+            b.customStatement(
+              'INSERT INTO users DEFAULT VALUES;',
+              updates: [TableUpdate('users')],
+            );
+          });
+        },
+        connect: EmptyDb.new,
+      );
+      expect(await db.customSelect('SELECT * FROM users').get(), hasLength(1));
+
+      // This should also update the change notification stream.
+      await changes.next;
+      changes.cancel();
+    });
+
+    test('inherits transaction context', () async {
+      final db = openDrift();
+      await db.customStatement(
+        'CREATE TABLE users (id INTEGER NOT NULL PRIMARY KEY)',
+      );
+      addTearDown(db.close);
+
+      await db.transaction(() async {
+        await db.customStatement('INSERT INTO users DEFAULT VALUES');
+
+        await db.computeWithDatabase(
+          computation: (db) async {
+            expect(
+              await db.customSelect('SELECT * FROM users').get(),
+              hasLength(1),
+            );
+          },
+          connect: EmptyDb.new,
+        );
+      });
+    });
   });
 }
 
